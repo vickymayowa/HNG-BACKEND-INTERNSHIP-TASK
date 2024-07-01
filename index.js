@@ -4,28 +4,22 @@ const app = express();
 
 app.get("/api/hello", async (req, res) => {
   const visitorName = req.query.visitor_name;
-  const clientIp = req.ip === "::1" ? "127.0.0.1" : req.ip;
-
+  const temperature = 11;
+  if (!visitorNae || visitorName.trim() === "") {
+    return res.status(400).json({ message: "Visitor Name is Required" });
+  }
   try {
-    // Fetch location data from IP-API
-    const response = await axios.get(`http://ip-api.com/json/${clientIp}`);
-    console.log(response.data);
-    const location = response.data.city || "Unknown";
-    const temperature = 11; // For simplicity, we'll hardcode the temperature
-
-    const greeting = `Hello, ${visitorName}! The temperature is ${temperature} degrees Celsius in ${location}`;
-
+    const ipResponse = await axios.get(
+      "https://get.geojs.io/v1/ip/country.json"
+    );
+    const greeting = `Hello, ${visitorName}, The temperature is ${temperature} degrees Celsius in ${ipResponse.data.name}`;
     res.json({
-      client_ip: clientIp,
-      location,
+      client_ip: ipResponse.data.ip,
+      location: ipResponse.data.name,
       greeting,
     });
   } catch (error) {
-    console.error("Error fetching location:", error);
-
-    res.status(500).json({
-      error: "Unable to fetch location",
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
