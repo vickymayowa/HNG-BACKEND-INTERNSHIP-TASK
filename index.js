@@ -5,7 +5,7 @@ const app = express();
 app.get("/api/hello", async (req, res) => {
   const visitorName = req.query.visitor_name;
   const temperature = 11;
-  if (!visitorNae || visitorName.trim() === "") {
+  if (!visitorName || visitorName.trim() === "") {
     return res.status(400).json({ message: "Visitor Name is Required" });
   }
   try {
