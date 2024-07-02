@@ -1,5 +1,9 @@
 const express = require("express");
 const axios = require("axios");
+const dotenv = require("dotenv");
+dotenv.config();
+
+const PORT = process.env.PORT || 8000;
 const app = express();
 
 app.get("/api/hello", async (req, res) => {
@@ -7,7 +11,7 @@ app.get("/api/hello", async (req, res) => {
   if (!visitorName || visitorName.trim() === "") {
     return res.status(400).json({ message: "Visitor Name is Required" });
   }
-  const OPENWEATHERMAP_API_KEY = "abd3a67c4c331ef2c764830dfd53a59b";
+  const OPENWEATHERMAP_API_KEY = process.env.API_WEB_KEY;
   try {
     const ipResponse = await axios.get(
       "https://get.geojs.io/v1/ip/country.json"
@@ -32,6 +36,6 @@ app.get("/api/hello", async (req, res) => {
   }
 });
 
-app.listen(8000, () => {
-  console.log("Server listening on port 3000");
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
