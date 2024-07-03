@@ -1,48 +1,44 @@
-import express from "express";
-import axios from "axios";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const PORT = process.env.PORT || 8000;
+const express = require("express");
+const axios = require("axios");
 const app = express();
-
+const port = 3000;
 app.get("/api/hello", async (req, res) => {
-  const visitorName = req.query.visitor_name;
-  if (!visitorName || visitorName.trim() === "") {
-    return res.status(400).json({ message: "Visitor Name is Required" });
+  let visitorName = req.query.visitor_name || "Guest";
+  visitorName = visitorName.replace(/['"]/g, "").trim();
+  let clientIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+  if (clientIp.includes(":")) {
+    clientIp = clientIp.split(":").pop();
   }
-  const OPENWEATHERMAP_API_KEY = process.env.API_WEB_KEY;
+  // Fallback IP for local testing
+  if (clientIp === "::1" || clientIp === "127.0.0.1") {
+    clientIp = "8.8.8.8";
+  }
   try {
-    const ipResponse = await axios.get("https://get.geojs.io/v1/ip/geo.json");
-
-    if (!ipResponse.data.city) {
-      throw new Error("City not found in IP response");
-    }
-
-    const CITY_NAME = ipResponse.data.city;
-    const weatherResponse = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?q=${CITY_NAME}&appid=${OPENWEATHERMAP_API_KEY}&units=metric`
+    const locationResponse = await axios.get(
+      `https://ipapi.co/${clientIp}/json/`
     );
-
-    if (!weatherResponse.data.main || !weatherResponse.data.main.temp) {
-      throw new Error("Temperature not found in weather response");
+    const { city, latitude, longitude } = locationResponse.data;
+    if (!city || !latitude || !longitude) {
+      throw new Error("Incomplete location data");
     }
-
-    const temperature = weatherResponse.data.main.temp;
-    const greeting = `Hello, ${visitorName}, The temperature is ${temperature} degrees Celsius in ${CITY_NAME}.`;
-
+    const weatherResponse = await axios.get(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
+    );
+    const temperature = weatherResponse.data.current_weather.temperature;
     res.json({
-      client_ip: ipResponse.data.ip,
-      location: CITY_NAME,
-      temperature,
-      greeting,
+      client_ip: clientIp,
+      location: city,
+      greeting: `Hello, ${visitorName}!, the temperature is ${temperature} degrees Celsius in ${city}`,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching data:", error.message);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+    }
+    res.status(500).json({ error: "Unable to fetch data" });
+    return res.send(error);
   }
 });
-
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+app.listen(port, "127.0.0.1", () => {
+  console.log(`Server is running on http://127.0.0.1:${port}`);
 });
